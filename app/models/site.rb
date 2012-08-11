@@ -3,7 +3,7 @@ class Site < ActiveRecord::Base
    has_many :clients
    has_many :orders
    def import_clients(my_logger)
-      load_xml_from('clients',my_logger).select{|cl| cl['id']> current_client }.sort_by{|cl| cl['id']}.each{ |cl|
+      load_xml_from_clients(my_logger).select{|cl| cl['id']> current_client }.sort_by{|cl| cl['id']}.each{ |cl|
          field_name="Организация"
          field_object = cl['fields_values'].select{|fv| fv['name']== field_name }.first
          attrs = {'id' => cl['id'],
@@ -20,7 +20,7 @@ class Site < ActiveRecord::Base
       return nil
    end
    def import_orders(my_logger)
-      load_xml_from('orders',my_logger).select{|od| od['id']> current_order }.sort_by{|od| od['id']}.each{ |od|
+      load_xml_from_orders(my_logger).select{|od| od['id']> current_order }.sort_by{|od| od['id']}.each{ |od|
          attrs = {'id' => od['id'],
                   'number' => od['number'],
                   'xml' => od.to_xml,
@@ -34,20 +34,34 @@ class Site < ActiveRecord::Base
       }
       return nil
    end
-   def load_xml_from( resource,my_logger )
+   def load_xml_from_clients( my_logger )
       h = []
       require 'net/http'
       i=1
       loop do        
-         uri = URI.parse('http://'+address+'/admin/'+resource+'.xml?page='+i.to_s)
+         uri = URI.parse('http://'+address+'/admin/clients.xml?page='+i.to_s)
          #my_logger.warn( "load_xml_from "+ uri.to_s )
          r=get_responce_from_insales(uri,my_logger) 
          break if r == nil
-         h=h +r[resource]
+         h=h +r['clients']
          i=i+1
       end
       return h
    end
+   def load_xml_from_orders( my_logger )
+      h = []
+      require 'net/http'
+      uri = URI.parse('http://'+address+'/admin/orders/orders_by_range.xml?start_order_id='+current_order.to_s+'&limit=2')
+      #puts uri
+      #my_logger.warn( "load_xml_from "+ uri.to_s )
+      r=get_responce_from_insales(uri,my_logger)
+      if r
+         h=h +r['orders']
+      end
+
+      return h
+   end
+   
    def check_and_send_emails(ser,my_logger)
       ser.where( "delivered=?",false).each { |se|
       begin
