@@ -1,5 +1,5 @@
 class SitesController < ApplicationController
-  before_filter :authenticate_user!
+  before_filter :authenticate_user!, :except => :public 
   def after_sign_out_path_for(resource_or_scope)
     root_path
   end
@@ -13,6 +13,15 @@ class SitesController < ApplicationController
       format.json { render :json => @sites }
     end
   end
+  def public
+    @sites = Site.select("name, address").where("name <>''")
+    respond_to do |format|
+      format.html # index.html.erb
+#	render :json => @sites, :callback => params[:data]
+      format.json { render :json => @sites, :callback => params[:callback] }
+    end
+  end
+
 
   # GET /sites/1
   # GET /sites/1.json

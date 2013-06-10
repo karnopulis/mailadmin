@@ -4,13 +4,19 @@ class Site < ActiveRecord::Base
    has_many :orders
    def import_clients(my_logger)
       load_xml_from_clients(my_logger).select{|cl| cl['id']> current_client }.sort_by{|cl| cl['id']}.each{ |cl|
-         field_name="Организация"
-         field_object = cl['fields_values'].select{|fv| fv['name']== field_name }.first
-         attrs = {'id' => cl['id'],
+         field_name_company="Организация"
+         field_object_company = cl['fields_values'].select{|fv| fv['name']== field_name_company }.first
+         field_name_manager="менеджер"
+	 field_object_manager = cl['fields_values'].select{|fv| fv['name']== field_name_manager }.first
+         field_name_town="Город"
+         field_object_town = cl['fields_values'].select{|fv| fv['name']== field_name_town }.first
+	 attrs = {'id' => cl['id'],
                   'name' => cl['name'],
                   'phone' => cl['phone'],
                   'email' => cl['email'],
-                  'company' => field_object ? field_object['value'] : nil  }
+                  'manager' => field_object_manager ? field_object_manager['value'] : nil ,
+		  'company' => field_object_company ? field_object_company['value'] : nil ,
+		  'town' => field_object_town ? field_object_town['value'] : nil  }
          cn=clients.new(attrs)
          cn.new_record? ? cn.update_attributes(attrs) : cn.create(attrs)
          self.current_client = cl['id']
@@ -25,11 +31,17 @@ class Site < ActiveRecord::Base
                   'number' => od['number'],
                   'xml' => od.to_xml,
                   'site_id' =>self.id}
+         begin
          od=clients.find(od['client']['id']).orders.new(attrs)
+         rescue Exception => exc
+         	my_logger.warn("Client not found" +exc.message)
+         	return nil
+         end
          od.new_record? ? od.update_attributes(attrs) : od.create(attrs)
          self.current_order = od['id']
          self.save
          my_logger.warn("import_orders+New order:" + od['id'].to_s)
+	 my_logger.warn(od['xml'])
 
       }
       return nil
@@ -40,7 +52,7 @@ class Site < ActiveRecord::Base
       i=1
       loop do        
          uri = URI.parse('http://'+address+'/admin/clients.xml?page='+i.to_s)
-         #my_logger.warn( "load_xml_from "+ uri.to_s )
+         my_logger.warn( "load_xml_from "+ uri.to_s )
          r=get_responce_from_insales(uri,my_logger) 
          break if r == nil
          h=h +r['clients']
@@ -53,8 +65,9 @@ class Site < ActiveRecord::Base
       require 'net/http'
       uri = URI.parse('http://'+address+'/admin/orders/orders_by_range.xml?start_order_id='+current_order.to_s+'&limit=2')
       #puts uri
-      #my_logger.warn( "load_xml_from "+ uri.to_s )
+      my_logger.warn( "load_xml_from "+ uri.to_s )
       r=get_responce_from_insales(uri,my_logger)
+      
       if r
          h=h +r['orders']
       end
@@ -108,7 +121,7 @@ class Site < ActiveRecord::Base
    end
 end 
 class Client < ActiveRecord::Base
-   attr_accessible :id, :name, :company, :phone, :email, :site_id, :delivered
+   attr_accessible :id, :name, :company, :town, :manager, :phone, :email, :site_id, :delivered
    belongs_to :site
    has_many :orders
    def send_mail(my_logger)

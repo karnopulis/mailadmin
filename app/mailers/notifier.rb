@@ -4,7 +4,7 @@ class Notifier < ActionMailer::Base
   def notify_new_register(client)
     @about=client
     to_to=client.site.reg_emails
-    mail(:to =>to_to , :subject =>"Зарегистрировался новый пользователь" )
+    mail(:to =>to_to , :subject =>"Зарегистрировался новый пользователь на сайте: " + client.site.address )
   end
   def notify_new_order(order,my_logger)
     @about=order.client

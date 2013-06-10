@@ -1,6 +1,7 @@
 Mailadmin::Application.routes.draw do
   devise_for :users,:skip => :registrations
   
+  match 'sites/public', :to => 'sites#public'
   resources :sites
 
   # The priority is based upon order of creation:

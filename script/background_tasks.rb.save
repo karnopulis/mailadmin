@@ -45,6 +45,7 @@ Daemons.run_proc('BackgroundTasks') do
   ActiveRecord::Base.verify_active_connections!
   #ActiveRecord::Base.clear_active_connections!
   my_logger = ActiveSupport::BufferedLogger.new( "/var/log/rails.log")
+  
   Rails.logger = my_logger
   #ActiveRecord::Base.logger =my_logger
   #ActiveRecord::Base.logger = Logger.new(STDOUT)
@@ -52,6 +53,3 @@ Daemons.run_proc('BackgroundTasks') do
   ActionMailer::Base.logger = Logger.new('/dev/null')
   BackgroundTasks.instance.run(my_logger)
 end
-# my_logger = ActiveSupport::BufferedLogger.new( "/var/log/rails.log")
-# BackgroundTasks.instance.run(my_logger)
-
